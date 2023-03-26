@@ -41,7 +41,7 @@ class TrieNode {
 
       key_char_ = key_char;
       is_end_ = false;
-
+      children_ = std::unordered_map<char, std::unique_ptr<TrieNode>>();
   }
 
   /**
@@ -56,7 +56,7 @@ class TrieNode {
 
     key_char_ = other_trie_node.GetKeyChar();
     is_end_ = other_trie_node.IsEndNode();
-
+    children_ = std::move(other_trie_node.children_);
   }
 
   /**
@@ -122,6 +122,7 @@ class TrieNode {
    * @return Pointer to unique_ptr of the inserted child node. If insertion fails, return nullptr.
    */
   std::unique_ptr<TrieNode> *InsertChildNode(char key_char, std::unique_ptr<TrieNode> &&child) {
+    if (key_char!=child->GetKeyChar())return nullptr;
     if(HasChild(key_char)){
       return nullptr;
     }
@@ -279,7 +280,10 @@ class Trie {
    * @brief Construct a new Trie object. Initialize the root node with '\0'
    * character.
    */
-  Trie() = default;
+  Trie(){
+    root_ = std::unique_ptr<TrieNode>(new TrieNode('\0'));
+    latch_ = ReaderWriterLatch();
+  } ;
 
   /**
    * TODO(P0): Add implementation
@@ -309,8 +313,14 @@ class Trie {
    */
   template <typename T>
   bool Insert(const std::string &key, T value) {
-    
-    return false;
+    std::unique_ptr<TrieNode> *ptr = root_;
+    if(key.empty())return false;
+    for(auto ch:key){
+      if(ptr->HasChild(char key_char)){ptr = GetChildNode(char key_char);}
+      else{
+         ptr = ptr->InsertChildNode(ch, std::unique_ptr<TrieNode>(new TrieNode(ch)))
+      }
+    }
   }
 
   /**
